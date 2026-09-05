@@ -6,6 +6,7 @@ class FatorRecuperacao:
         A perda deve ser informada em formato decimal (ex.: 20% -> 0.20).
         Se um percentual inteiro for informado (ex.: 20), ele será convertido
         automaticamente para decimal.
+        O resultado é arredondado para 2 casas decimais.
         """
         if perda < 0:
             raise ValueError("A perda não pode ser negativa.")
@@ -19,7 +20,7 @@ class FatorRecuperacao:
         if perda >= 1:
             raise ValueError("Uma perda de 100% ou mais não pode ser recuperada.")
 
-        return perda / (1 - perda)
+        return round(perda / (1 - perda), 2)
 
 
 class Main:
@@ -32,4 +33,4 @@ class Main:
 
 if __name__ == "__main__":
     print(Main().hello_world())
-    print(FatorRecuperacao.calcular(0.33))
+    print(FatorRecuperacao.calcular(333))

@@ -9,7 +9,7 @@ class TestHelloWorld(unittest.TestCase):
 
     def test_fator_de_recuperacao(self):
         self.assertAlmostEqual(FatorRecuperacao().calcular(0.20), 0.25)
-        self.assertAlmostEqual(FatorRecuperacao().calcular(0.10), 0.1111111111)
+        self.assertAlmostEqual(FatorRecuperacao().calcular(0.10), 0.11)
         self.assertAlmostEqual(FatorRecuperacao().calcular(0.50), 1.0)
         self.assertAlmostEqual(FatorRecuperacao().calcular(0.90), 9.0)
 
