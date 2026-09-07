@@ -4,11 +4,13 @@ class Orchestrator:
         self,
         workflow,
         skill_loader,
-        agent
+        agent,
+        validator
     ):
         self.workflow = workflow
         self.skill_loader = skill_loader
         self.agent = agent
+        self.validator = validator
 
     def run(self):
 
@@ -18,6 +20,7 @@ class Orchestrator:
 
             step_id = step["id"]
             skill_name = step["skill"]
+            validator_name = step.get("validator")
 
             print(
                 f"\n=============================="
@@ -43,10 +46,19 @@ class Orchestrator:
                 skill
             )
 
+            validation = self.validator.validate(
+                validator_name
+            )
+
+            print("\nVALIDATION:")
+
+            print(validation)
+
             results.append(
                 {
                     "step": step_id,
-                    "result": result
+                    "result": result,
+                    "validation": validation
                 }
             )
 

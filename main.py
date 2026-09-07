@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from agents.validator import Validator
 from tools.registry import ToolRegistry
 
 from agents.agent import Agent
@@ -46,12 +47,20 @@ def main():
 
     workflow = workflow_loader.load()
 
+
+    # Validator
+
+    validator = Validator(
+        PROJECT_ROOT
+    )
+
     # Orchestrator
 
     orchestrator = Orchestrator(
         workflow=workflow,
         skill_loader=skill_loader,
-        agent=agent
+        agent=agent,
+        validator=validator
     )
 
     results = orchestrator.run()

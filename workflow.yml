@@ -4,6 +4,8 @@ steps:
 
   - id: hello-world
     skill: hello-world
+    validator: hello-world
 
   - id: readme
     skill: readme-updater
+    validator: readme
