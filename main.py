@@ -10,6 +10,22 @@ SKILLS_DIR = PROJECT_ROOT / ".agents" / "skills"
 
 MODEL = "qwen3.5:2b"
 
+FILESYSTEM_TOOL_DESCRIPTION = """
+    You have access to the following tool:
+
+    filesystem.read_file(path)
+        Reads a text file from the project.
+
+    filesystem.write_file(path, content)
+        Creates or replaces a text file.
+
+    filesystem.exists(path)
+        Checks whether a file exists.
+
+    Paths are relative to the project root.
+    You cannot access files outside the project root.
+"""
+
 
 def load_workflow():
     with open(WORKFLOW_FILE, "r", encoding="utf-8") as file:
@@ -40,13 +56,16 @@ def execute_skill(skill_name, previous_result=None):
         Skill:
         {skill}
 
+        Available tools:
+        {FILESYSTEM_TOOL_DESCRIPTION}
+
         Previous step result:
         {previous_result or "None"}
 
         Execute the instructions defined by the skill.
 
         You are allowed to inspect and modify the project files
-        when necessary.
+        using the filesystem tools described above.
 
         When finished, provide a concise summary of what you did.
     """
