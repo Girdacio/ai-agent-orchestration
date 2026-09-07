@@ -1,36 +1,54 @@
-class FatorRecuperacao:
-    @staticmethod
-    def calcular(perda: float) -> float:
-        """Retorna o ganho necessário para recuperar uma perda percentual.
-
-        A perda deve ser informada em formato decimal (ex.: 20% -> 0.20).
-        Se um percentual inteiro for informado (ex.: 20), ele será convertido
-        automaticamente para decimal.
-        O resultado é arredondado para 2 casas decimais.
-        """
-        if perda < 0:
-            raise ValueError("A perda não pode ser negativa.")
-
-        if perda > 1:
-            if perda <= 100:
-                perda = perda / 100
-            else:
-                raise ValueError("A perda deve estar entre 0 e 1 (decimal) ou entre 0 e 100 (percentual).")
-
-        if perda >= 1:
-            raise ValueError("Uma perda de 100% ou mais não pode ser recuperada.")
-
-        return round(perda / (1 - perda), 2)
+import yaml
+from pathlib import Path
 
 
-class Main:
-    def hello_world(self):
-        return "Hello, World!"
+PROJECT_ROOT = Path(__file__).parent
+WORKFLOW_FILE = PROJECT_ROOT / "workflow.yml"
+SKILLS_DIR = PROJECT_ROOT / ".agents" / "skills"
 
-    def fator_de_recuperacao(self, perda: float) -> float:
-        return FatorRecuperacao.calcular(perda)
+
+def load_workflow():
+    with open(WORKFLOW_FILE, "r", encoding="utf-8") as file:
+        return yaml.safe_load(file)
+
+
+def load_skill(skill_name):
+    skill_file = SKILLS_DIR / skill_name / "SKILL.md"
+
+    if not skill_file.exists():
+        raise FileNotFoundError(
+            f"Skill não encontrada: {skill_file}"
+        )
+
+    return skill_file.read_text(encoding="utf-8")
+
+
+def main():
+    """Orquestra a execução do workflow do projeto.
+
+    Este método é o ponto central de execução: carrega a configuração do
+    workflow, identifica cada etapa e garante a execução sequencial das skills
+    definidas no arquivo workflow.yml.
+    """
+    workflow = load_workflow()
+
+    print(f"Workflow: {workflow['name']}")
+    print()
+
+    for step in workflow["steps"]:
+        skill_name = step["skill"]
+
+        print(f"Executing skill: {skill_name}")
+
+        skill_content = load_skill(skill_name)
+
+        print(f"Loaded: .agents/skills/{skill_name}/SKILL.md")
+        print()
+
+        # Por enquanto apenas mostramos o conteúdo.
+        print(skill_content)
+        print("-" * 60)
 
 
 if __name__ == "__main__":
-    print(Main().hello_world())
-    print(FatorRecuperacao.calcular(33))
+    main()
