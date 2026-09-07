@@ -1,120 +1,166 @@
-import yaml
-import ollama
-
+import json
 from pathlib import Path
 
+import ollama
 
-PROJECT_ROOT = Path(__file__).parent
-WORKFLOW_FILE = PROJECT_ROOT / "workflow.yml"
-SKILLS_DIR = PROJECT_ROOT / ".agents" / "skills"
+from tools.filesystem import FileSystemTool
 
+
+PROJECT_ROOT = Path(__file__).parent.resolve()
 MODEL = "qwen3.5:2b"
 
-FILESYSTEM_TOOL_DESCRIPTION = """
-    You have access to the following tool:
 
-    filesystem.read_file(path)
-        Reads a text file from the project.
-
-    filesystem.write_file(path, content)
-        Creates or replaces a text file.
-
-    filesystem.exists(path)
-        Checks whether a file exists.
-
-    Paths are relative to the project root.
-    You cannot access files outside the project root.
-"""
+filesystem = FileSystemTool(PROJECT_ROOT)
 
 
-def load_workflow():
-    with open(WORKFLOW_FILE, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "filesystem.read_file",
+            "description": "Read a text file from the project.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Path relative to the project root."
+                    }
+                },
+                "required": ["path"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "filesystem.write_file",
+            "description": "Create or overwrite a text file in the project.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string"
+                    },
+                    "content": {
+                        "type": "string"
+                    }
+                },
+                "required": ["path", "content"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "filesystem.file_exists",
+            "description": "Check whether a file exists in the project.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string"
+                    }
+                },
+                "required": ["path"]
+            }
+        }
+    }
+]
 
 
-def load_skill(skill_name):
-    skill_file = SKILLS_DIR / skill_name / "SKILL.md"
+def execute_tool(name, arguments):
 
-    if not skill_file.exists():
-        raise FileNotFoundError(
-            f"Skill não encontrada: {skill_file}"
+    print(f"\n[TOOL CALL] {name}")
+    print(f"[ARGUMENTS] {arguments}")
+
+    if name == "filesystem.read_file":
+        return filesystem.read_file(
+            arguments["path"]
         )
 
-    return skill_file.read_text(encoding="utf-8")
+    if name == "filesystem.write_file":
+        return filesystem.write_file(
+            arguments["path"],
+            arguments["content"]
+        )
 
+    if name == "filesystem.file_exists":
+        return filesystem.file_exists(
+            arguments["path"]
+        )
 
-def execute_skill(skill_name, previous_result=None):
-
-    skill = load_skill(skill_name)
-
-    prompt = f"""
-        You are executing a project skill.
-
-        Project root:
-        {PROJECT_ROOT}
-
-        Skill:
-        {skill}
-
-        Available tools:
-        {FILESYSTEM_TOOL_DESCRIPTION}
-
-        Previous step result:
-        {previous_result or "None"}
-
-        Execute the instructions defined by the skill.
-
-        You are allowed to inspect and modify the project files
-        using the filesystem tools described above.
-
-        When finished, provide a concise summary of what you did.
-    """
-
-    response = ollama.chat(
-        model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+    raise ValueError(
+        f"Unknown tool: {name}"
     )
 
-    return response["message"]["content"]
 
 def main():
-    """Orquestra a execução do workflow do projeto.
 
-    Este método é o ponto central de execução: carrega a configuração do
-    workflow, identifica cada etapa e garante a execução sequencial das skills
-    definidas no arquivo workflow.yml.
-    """
-    workflow = load_workflow()
+    messages = [
+        {
+            "role": "system",
+            "content": """
+            You are a software development agent.
 
-    print(f"Starting workflow: {workflow['name']}")
-    print()
+            You have access to the project filesystem through tools.
 
-    previous_result = None
+            Use the filesystem tools whenever you need to inspect
+            or modify project files.
 
-    for index, step in enumerate(workflow["steps"], start=1):
+            Do not claim that you inspected a file unless you
+            actually used the filesystem tool.
+            """
+                    },
+                    {
+                        "role": "user",
+                        "content": """
+            Inspect the project README.md and tell me how is calculated the recuperacao function.
+            Do not guess. Use the filesystem tool. Also tell me how many and which are the steps on the workflow.yml file.
+            """
+        }
+    ]
 
-        skill_name = step["skill"]
+    while True:
 
-        print(f"[{index}] Executing: {skill_name}")
-
-        result = execute_skill(
-            skill_name,
-            previous_result
+        response = ollama.chat(
+            model=MODEL,
+            messages=messages,
+            tools=TOOLS
         )
 
-        print(result)
-        print()
-        print("-" * 70)
-        print()
+        message = response["message"]
 
-        previous_result = result
+        messages.append(message)
 
-    print("Workflow completed.")
+        # LLM respondeu normalmente
+        if not message.get("tool_calls"):
+
+            print("\n[LLM RESPONSE]")
+            print(message["content"])
+
+            break
+
+        # LLM solicitou uma ou mais tools
+        for tool_call in message["tool_calls"]:
+
+            function = tool_call["function"]
+
+            name = function["name"]
+            arguments = function["arguments"]
+
+            result = execute_tool(
+                name,
+                arguments
+            )
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_name": name,
+                    "content": str(result)
+                }
+            )
 
 
 if __name__ == "__main__":

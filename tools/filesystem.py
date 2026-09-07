@@ -27,7 +27,7 @@ class FileSystemTool:
             encoding="utf-8"
         )
 
-    def exists(self, path):
+    def file_exists(self, path):
         file_path = self._safe_path(path)
 
         return file_path.exists()
