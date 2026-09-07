@@ -33,4 +33,4 @@ class Main:
 
 if __name__ == "__main__":
     print(Main().hello_world())
-    print(FatorRecuperacao.calcular(333))
+    print(FatorRecuperacao.calcular(33))

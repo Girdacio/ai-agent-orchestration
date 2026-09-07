@@ -1,2 +1,0 @@
-# vamos rodar os testes unitários do projeto
-python -m unittest unit_test.py

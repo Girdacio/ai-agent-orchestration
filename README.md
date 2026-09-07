@@ -42,7 +42,7 @@ Hello, World!
 
 ## Como executar testes
 ```bash
-python -m unittest -v
+python -m unittest discover -s test -p 'test*.py' -v
 ```
 
 ## Contribuidores
