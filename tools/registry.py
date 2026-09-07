@@ -1,23 +1,30 @@
 from tools.filesystem import FileSystemTool
 
+from tools.filesystem_tools import (
+    ReadFileTool,
+    WriteFileTool,
+    FileExistsTool,
+)
+
 
 class ToolRegistry:
 
     def __init__(self, project_root):
 
-        self.filesystem = FileSystemTool(
+        filesystem = FileSystemTool(
             project_root
         )
 
         self.tools = {
+
             "filesystem.read_file":
-                self.filesystem.read_file,
+                ReadFileTool(filesystem),
 
             "filesystem.write_file":
-                self.filesystem.write_file,
+                WriteFileTool(filesystem),
 
             "filesystem.file_exists":
-                self.filesystem.file_exists,
+                FileExistsTool(filesystem),
         }
 
     def get(self, name):
@@ -28,3 +35,10 @@ class ToolRegistry:
             )
 
         return self.tools[name]
+
+    def definitions(self):
+
+        return [
+            tool.definition()
+            for tool in self.tools.values()
+        ]

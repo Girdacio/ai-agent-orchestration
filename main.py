@@ -9,64 +9,11 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 
 MODEL = "qwen3.5:2b"
 
+
 tool_registry = ToolRegistry(
     PROJECT_ROOT
 )
 
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "filesystem.read_file",
-            "description": "Read a text file from the project.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "Path relative to the project root."
-                    }
-                },
-                "required": ["path"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "filesystem.write_file",
-            "description": "Create or overwrite a text file in the project.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string"
-                    },
-                    "content": {
-                        "type": "string"
-                    }
-                },
-                "required": ["path", "content"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "filesystem.file_exists",
-            "description": "Check whether a file exists in the project.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string"
-                    }
-                },
-                "required": ["path"]
-            }
-        }
-    }
-]
 
 def execute_tool(name, arguments):
 
@@ -75,7 +22,8 @@ def execute_tool(name, arguments):
 
     tool = tool_registry.get(name)
 
-    return tool(**arguments)
+    return tool.execute(arguments)
+
 
 def main():
 
@@ -111,7 +59,7 @@ def main():
         response = ollama.chat(
             model=MODEL,
             messages=messages,
-            tools=TOOLS
+            tools=tool_registry.definitions()
         )
 
         message = response["message"]
