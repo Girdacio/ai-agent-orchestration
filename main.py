@@ -1,8 +1,12 @@
 from pathlib import Path
 
-import ollama
-
 from tools.registry import ToolRegistry
+
+from agents.agent import Agent
+from agents.skill_loader import SkillLoader
+
+from workflow.loader import WorkflowLoader
+from workflow.orchestrator import Orchestrator
 
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -10,88 +14,59 @@ PROJECT_ROOT = Path(__file__).parent.resolve()
 MODEL = "qwen3.5:2b"
 
 
-tool_registry = ToolRegistry(
-    PROJECT_ROOT
-)
-
-
-def execute_tool(name, arguments):
-
-    print(f"\n[TOOL CALL] {name}")
-    print(f"[ARGUMENTS] {arguments}")
-
-    tool = tool_registry.get(name)
-
-    return tool.execute(arguments)
-
-
 def main():
 
-    messages = [
-        {
-            "role": "system",
-            "content": """
-            You are a software development agent.
+    # Tools
 
-            You have access to the project filesystem through tools.
+    tool_registry = ToolRegistry(
+        PROJECT_ROOT
+    )
 
-            Use the filesystem tools whenever you need to inspect
-            or modify project files.
+    # Skills
 
-            Do not claim that you inspected a file unless you
-            actually used the filesystem tool.
-            """
-                    },
-                    {
-                        "role": "user",
-                        "content": """
-            Inspect the project README.md and tell me what it contains.
+    skill_loader = SkillLoader(
+        PROJECT_ROOT
+        / ".agents"
+        / "skills"
+    )
 
-            Do not guess.
+    # Agent
 
-            Use the filesystem tool.
-            """
-        }
-    ]
+    agent = Agent(
+        model=MODEL,
+        tool_registry=tool_registry
+    )
 
-    while True:
+    # Workflow
 
-        response = ollama.chat(
-            model=MODEL,
-            messages=messages,
-            tools=tool_registry.definitions()
+    workflow_loader = WorkflowLoader(
+        PROJECT_ROOT
+        / "workflow.yml"
+    )
+
+    workflow = workflow_loader.load()
+
+    # Orchestrator
+
+    orchestrator = Orchestrator(
+        workflow=workflow,
+        skill_loader=skill_loader,
+        agent=agent
+    )
+
+    results = orchestrator.run()
+
+    print("\n\nWORKFLOW FINISHED")
+
+    for result in results:
+
+        print(
+            f"\n[{result['step']}]"
         )
 
-        message = response["message"]
-
-        messages.append(message)
-
-        if not message.get("tool_calls"):
-
-            print("\n[LLM RESPONSE]")
-            print(message["content"])
-
-            break
-
-        for tool_call in message["tool_calls"]:
-
-            function = tool_call["function"]
-
-            name = function["name"]
-            arguments = function["arguments"]
-
-            result = execute_tool(
-                name,
-                arguments
-            )
-
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_name": name,
-                    "content": str(result)
-                }
-            )
+        print(
+            result["result"]
+        )
 
 
 if __name__ == "__main__":

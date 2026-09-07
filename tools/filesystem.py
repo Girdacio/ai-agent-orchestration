@@ -45,3 +45,21 @@ class FileSystemTool:
             )
 
         return target
+
+    def list_files(self, path: str = ".") -> list[str]:
+        directory = self._safe_path(path)
+
+        if not directory.exists():
+            raise FileNotFoundError(
+                f"Directory not found: {path}"
+            )
+
+        if not directory.is_dir():
+            raise ValueError(
+                f"Path is not a directory: {path}"
+            )
+
+        return [
+            item.name
+            for item in directory.iterdir()
+        ]

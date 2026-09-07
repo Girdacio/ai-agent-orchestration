@@ -4,6 +4,7 @@ from tools.filesystem_tools import (
     ReadFileTool,
     WriteFileTool,
     FileExistsTool,
+    ListFilesTool
 )
 
 
@@ -25,6 +26,9 @@ class ToolRegistry:
 
             "filesystem.file_exists":
                 FileExistsTool(filesystem),
+
+            "filesystem.list_files":
+                ListFilesTool(filesystem),
         }
 
     def get(self, name):

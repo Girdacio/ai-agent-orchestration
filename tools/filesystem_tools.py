@@ -98,3 +98,35 @@ class FileExistsTool(Tool):
         return self.filesystem.file_exists(
             arguments["path"]
         )
+
+
+class ListFilesTool(Tool):
+
+    def __init__(self, filesystem):
+        self.filesystem = filesystem
+
+    @property
+    def name(self):
+        return "filesystem.list_files"
+
+    @property
+    def description(self):
+        return "List files and directories inside a project directory."
+
+    @property
+    def parameters(self):
+        return {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Directory path relative to the project root."
+                }
+            },
+            "required": ["path"]
+        }
+
+    def execute(self, arguments):
+        return self.filesystem.list_files(
+            arguments.get("path", ".")
+        )
