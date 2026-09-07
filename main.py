@@ -1,101 +1,72 @@
-import yaml
-import ollama
-
 from pathlib import Path
 
+from tools.registry import ToolRegistry
 
-PROJECT_ROOT = Path(__file__).parent
-WORKFLOW_FILE = PROJECT_ROOT / "workflow.yml"
-SKILLS_DIR = PROJECT_ROOT / ".agents" / "skills"
+from agents.agent import Agent
+from agents.skill_loader import SkillLoader
+
+from workflow.loader import WorkflowLoader
+from workflow.orchestrator import Orchestrator
+
+
+PROJECT_ROOT = Path(__file__).parent.resolve()
 
 MODEL = "qwen3.5:2b"
 
 
-def load_workflow():
-    with open(WORKFLOW_FILE, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
+def main():
 
+    # Tools
 
-def load_skill(skill_name):
-    skill_file = SKILLS_DIR / skill_name / "SKILL.md"
-
-    if not skill_file.exists():
-        raise FileNotFoundError(
-            f"Skill não encontrada: {skill_file}"
-        )
-
-    return skill_file.read_text(encoding="utf-8")
-
-
-def execute_skill(skill_name, previous_result=None):
-
-    skill = load_skill(skill_name)
-
-    prompt = f"""
-        You are executing a project skill.
-
-        Project root:
-        {PROJECT_ROOT}
-
-        Skill:
-        {skill}
-
-        Previous step result:
-        {previous_result or "None"}
-
-        Execute the instructions defined by the skill.
-
-        You are allowed to inspect and modify the project files
-        when necessary.
-
-        When finished, provide a concise summary of what you did.
-    """
-
-    response = ollama.chat(
-        model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+    tool_registry = ToolRegistry(
+        PROJECT_ROOT
     )
 
-    return response["message"]["content"]
+    # Skills
 
-def main():
-    """Orquestra a execução do workflow do projeto.
+    skill_loader = SkillLoader(
+        PROJECT_ROOT
+        / ".agents"
+        / "skills"
+    )
 
-    Este método é o ponto central de execução: carrega a configuração do
-    workflow, identifica cada etapa e garante a execução sequencial das skills
-    definidas no arquivo workflow.yml.
-    """
-    workflow = load_workflow()
+    # Agent
 
-    print(f"Starting workflow: {workflow['name']}")
-    print()
+    agent = Agent(
+        model=MODEL,
+        tool_registry=tool_registry
+    )
 
-    previous_result = None
+    # Workflow
 
-    for index, step in enumerate(workflow["steps"], start=1):
+    workflow_loader = WorkflowLoader(
+        PROJECT_ROOT
+        / "workflow.yml"
+    )
 
-        skill_name = step["skill"]
+    workflow = workflow_loader.load()
 
-        print(f"[{index}] Executing: {skill_name}")
+    # Orchestrator
 
-        result = execute_skill(
-            skill_name,
-            previous_result
+    orchestrator = Orchestrator(
+        workflow=workflow,
+        skill_loader=skill_loader,
+        agent=agent
+    )
+
+    results = orchestrator.run()
+
+    print("\n\nWORKFLOW FINISHED")
+
+    for result in results:
+
+        print(
+            f"\n[{result['step']}]"
         )
 
-        print(result)
-        print()
-        print("-" * 70)
-        print()
-
-        previous_result = result
-
-    print("Workflow completed.")
+        print(
+            result["result"]
+        )
 
 
 if __name__ == "__main__":
