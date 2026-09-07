@@ -1,10 +1,14 @@
 import yaml
+import ollama
+
 from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).parent
 WORKFLOW_FILE = PROJECT_ROOT / "workflow.yml"
 SKILLS_DIR = PROJECT_ROOT / ".agents" / "skills"
+
+MODEL = "qwen3.5:2b"
 
 
 def load_workflow():
@@ -23,6 +27,42 @@ def load_skill(skill_name):
     return skill_file.read_text(encoding="utf-8")
 
 
+def execute_skill(skill_name, previous_result=None):
+
+    skill = load_skill(skill_name)
+
+    prompt = f"""
+You are executing a project skill.
+
+Project root:
+{PROJECT_ROOT}
+
+Skill:
+{skill}
+
+Previous step result:
+{previous_result or "None"}
+
+Execute the instructions defined by the skill.
+
+You are allowed to inspect and modify the project files
+when necessary.
+
+When finished, provide a concise summary of what you did.
+"""
+
+    response = ollama.chat(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+    )
+
+    return response["message"]["content"]
+
 def main():
     """Orquestra a execução do workflow do projeto.
 
@@ -32,22 +72,30 @@ def main():
     """
     workflow = load_workflow()
 
-    print(f"Workflow: {workflow['name']}")
+    print(f"Starting workflow: {workflow['name']}")
     print()
 
-    for step in workflow["steps"]:
+    previous_result = None
+
+    for index, step in enumerate(workflow["steps"], start=1):
+
         skill_name = step["skill"]
 
-        print(f"Executing skill: {skill_name}")
+        print(f"[{index}] Executing: {skill_name}")
 
-        skill_content = load_skill(skill_name)
+        result = execute_skill(
+            skill_name,
+            previous_result
+        )
 
-        print(f"Loaded: .agents/skills/{skill_name}/SKILL.md")
+        print(result)
+        print()
+        print("-" * 70)
         print()
 
-        # Por enquanto apenas mostramos o conteúdo.
-        print(skill_content)
-        print("-" * 60)
+        previous_result = result
+
+    print("Workflow completed.")
 
 
 if __name__ == "__main__":
