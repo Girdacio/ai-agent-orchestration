@@ -32,24 +32,24 @@ def execute_skill(skill_name, previous_result=None):
     skill = load_skill(skill_name)
 
     prompt = f"""
-You are executing a project skill.
+        You are executing a project skill.
 
-Project root:
-{PROJECT_ROOT}
+        Project root:
+        {PROJECT_ROOT}
 
-Skill:
-{skill}
+        Skill:
+        {skill}
 
-Previous step result:
-{previous_result or "None"}
+        Previous step result:
+        {previous_result or "None"}
 
-Execute the instructions defined by the skill.
+        Execute the instructions defined by the skill.
 
-You are allowed to inspect and modify the project files
-when necessary.
+        You are allowed to inspect and modify the project files
+        when necessary.
 
-When finished, provide a concise summary of what you did.
-"""
+        When finished, provide a concise summary of what you did.
+    """
 
     response = ollama.chat(
         model=MODEL,
