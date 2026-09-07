@@ -1,0 +1,6 @@
+name: project-workflow
+
+steps:
+  - skill: hello-wrld
+  
+  - skill: readme-updater
