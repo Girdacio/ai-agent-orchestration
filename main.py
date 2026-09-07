@@ -1,17 +1,17 @@
-import json
 from pathlib import Path
 
 import ollama
 
-from tools.filesystem import FileSystemTool
+from tools.registry import ToolRegistry
 
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
+
 MODEL = "qwen3.5:2b"
 
-
-filesystem = FileSystemTool(PROJECT_ROOT)
-
+tool_registry = ToolRegistry(
+    PROJECT_ROOT
+)
 
 TOOLS = [
     {
@@ -68,32 +68,14 @@ TOOLS = [
     }
 ]
 
-
 def execute_tool(name, arguments):
 
     print(f"\n[TOOL CALL] {name}")
     print(f"[ARGUMENTS] {arguments}")
 
-    if name == "filesystem.read_file":
-        return filesystem.read_file(
-            arguments["path"]
-        )
+    tool = tool_registry.get(name)
 
-    if name == "filesystem.write_file":
-        return filesystem.write_file(
-            arguments["path"],
-            arguments["content"]
-        )
-
-    if name == "filesystem.file_exists":
-        return filesystem.file_exists(
-            arguments["path"]
-        )
-
-    raise ValueError(
-        f"Unknown tool: {name}"
-    )
-
+    return tool(**arguments)
 
 def main():
 
@@ -115,8 +97,11 @@ def main():
                     {
                         "role": "user",
                         "content": """
-            Inspect the project README.md and tell me how is calculated the recuperacao function.
-            Do not guess. Use the filesystem tool. Also tell me how many and which are the steps on the workflow.yml file.
+            Inspect the project README.md and tell me what it contains.
+
+            Do not guess.
+
+            Use the filesystem tool.
             """
         }
     ]
@@ -133,7 +118,6 @@ def main():
 
         messages.append(message)
 
-        # LLM respondeu normalmente
         if not message.get("tool_calls"):
 
             print("\n[LLM RESPONSE]")
@@ -141,7 +125,6 @@ def main():
 
             break
 
-        # LLM solicitou uma ou mais tools
         for tool_call in message["tool_calls"]:
 
             function = tool_call["function"]

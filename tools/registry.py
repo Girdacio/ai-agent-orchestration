@@ -9,9 +9,7 @@ class ToolRegistry:
             project_root
         )
 
-    def get(self, name):
-
-        tools = {
+        self.tools = {
             "filesystem.read_file":
                 self.filesystem.read_file,
 
@@ -22,9 +20,11 @@ class ToolRegistry:
                 self.filesystem.file_exists,
         }
 
-        if name not in tools:
+    def get(self, name):
+
+        if name not in self.tools:
             raise ValueError(
                 f"Unknown tool: {name}"
             )
 
-        return tools[name]
+        return self.tools[name]
